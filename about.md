@@ -5,7 +5,7 @@ nav_order: 2
 
 # About Me
 
-I’m a geographer and educator passionate about mapping, cities, and design.
+I’m a software engineer, passionate about mapping, cities, and design.
 
-- **Current role:** Professor of Urban Spatial Design in Japan  
-- **Interests:** Web mapping, spatial analysis, and creative geography 
+- **Current role:** CTO at [Caresify](https://www.caresify.com/)  
+- **Interests:** Web mapping, micro computing, microservices, 3D printng and design 

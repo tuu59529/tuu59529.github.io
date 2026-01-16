@@ -7,6 +7,6 @@ nav_order: 4
 
 You can reach me at:
 
-- 📧 yourname@gmail.com  
-- 🌐 [GitHub](https://github.com/yourusername)  
-- 📍 Based in Japan  
+- 📧 go@remmy.me 
+- 🌐 [GitHub](https://github.com/modpluz)  
+- 📍 Based in Philadelphia, USA  
