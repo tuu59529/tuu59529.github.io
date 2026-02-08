@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Harrisburg, PA & Lancaster, PA Leaflet Map</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 400px;
+	  width: 50%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([40.0667, -76.1800], 9);
+
+    L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+		// Attribution Documentation: https://leafletjs.com/reference.html#control-attribution
+      attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors &copy; <a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle render">CyclOSM</a>',
+      maxZoom: 18,
+	  minZoom: 5
+    }).addTo(map);
+
+	const lancasterObj = {
+		name: 'Lancaster, PA',
+		population: 58690,
+		coordinates: [40.0667, -76.1800],
+	};
+
+	const harrisburgObj = {
+		name: 'Harrisburg, PA',
+		population: 50788,
+		coordinates: [40.2616, -76.8800],
+	};
+
+	const lancasterCircle = L.circle(lancasterObj.coordinates, {
+		color: 'red',
+		fillColor: 'blue',
+		fillOpacity: 0.4,
+		// Scale the radius based on population (dividing by 3 since we have a relatively small population to make it visually reasonable)
+		radius: Math.ceil(lancasterObj.population / 3), // Scale the radius based on population
+		weight: 6, // Set the stroke width to 6 pixels
+	}).addTo(map).bindTooltip(`<b>Name:</b>&nbsp;<i>${lancasterObj.name}</i><br><b>Population:</b> <i>${lancasterObj.population.toLocaleString('en-US')}</i>`);
+
+	
+	// Documentation for Leaflet Circle: https://leafletjs.com/reference-1.7.1.html#circle
+	const harrisburgCircle = L.circle(harrisburgObj.coordinates, {
+		color: 'gold',
+		fillColor: 'blue',
+		fillOpacity: 0.3,
+		weight: 6,
+		// Radius documentation: https://leafletjs.com/reference.html#circle-radius
+		radius: Math.ceil(harrisburgObj.population / 3), // Scale the radius based on population
+	});
+
+	harrisburgCircle.addTo(map)
+	harrisburgCircle.bindTooltip(`<b>Name:</b>&nbsp;<i>${harrisburgObj.name}</i><br><b>Population:</b> <i>${harrisburgObj.population.toLocaleString('en-US')}</i>`);
+  </script>
+</body>
+</html>
