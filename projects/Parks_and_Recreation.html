@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Parks & Recreation Program Sites</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+</head>
+
+<body>
+  <div id="map" style="width: 900px; height: 600px"></div>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+  <script src="parks.js"></script>
+
+  <script>
+    // Philly
+    var map = L.map('map').setView([39.9526, -75.1652], 11);
+
+    // Leaflet docs: L.tileLayer (basemap)
+    // https://leafletjs.com/reference.html#tilelayer
+    L.tileLayer(
+      "https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}",
+      {
+        id: "mapbox/navigation-night-v1", // pick any Mapbox style you like
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: "pk.eyJ1IjoidHV1NTk1MjkiLCJhIjoiY21scWlqODhzMDE1cjNkcHhzOTZsYXc0cCJ9.hRmYUTmc_omRdbjTG4RmVA",
+        attribution:
+          '© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+      }
+    ).addTo(map);
+
+    // Leaflet docs: L.geoJSON options (pointToLayer + filter)
+    // https://leafletjs.com/reference.html#geojson
+    var allSitesLayer = L.geoJSON(parks, {
+  pointToLayer: function (feature, latlng) {
+    return L.circleMarker(latlng, {
+      radius: 6,
+      color: "red",
+      fillColor: "blue",
+      fillOpacity: 0.8
+    });
+  },
+      onEachFeature: function (feature, layer) {
+        layer.bindPopup(feature.properties.park_name);
+      }
+    }).addTo(map);
+
+   var frankOnlyLayer = L.geoJSON(parks, {
+    pointToLayer: function (feature, latlng) {
+      return L.circleMarker(latlng, {
+        radius: 7,
+        color: "red",
+        fillColor: "blue",
+        fillOpacity: 0.9
+      });
+    },
+    // Leaflet docs: filter (return true to keep a feature)
+    // https://leafletjs.com/reference.html#geojson-filter
+    filter: function (feature) {
+      return feature.properties.park_name === "Frank Glavin Playground";
+    },
+    onEachFeature: function (feature, layer) {
+      layer.bindPopup(feature.properties.park_name);
+    }
+  });
+
+    // Optional: layer control so you can take both screenshots easily
+    L.control.layers(
+      null,
+      {
+        "All Program Sites (screenshot #1)": allSitesLayer,
+        "Frank Glavin Playground only (screenshot #2)": frankOnlyLayer
+      },
+      { collapsed: false }
+    ).addTo(map);
+  </script>
+</body>
+</html>
