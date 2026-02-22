@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>US Renewable Power Generation - Proportional Symbol Map</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet" type="text/css">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: whitesmoke;
+      font-family: Lato, sans-serif;
+      color: #0D0000;
+    }
+
+    header {
+      padding: 6px 10%;
+    }
+
+    h1 {
+      display: inline-block;
+      margin-right: 20px;
+      color: #001323;
+    }
+
+    h2 {
+      display: inline-block;
+      color: #001323;
+    }
+
+    #map {
+      width: 80%;
+      height: 540px;
+      margin: 10px auto;
+    }
+
+    footer {
+      padding: 6px 10%;
+      width: 80%;
+    }
+
+    p {
+      font-size: 1em;
+      color: #001323;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>U.S. Renewable Power Generation</h1>
+    <h2>Biomass vs Geothermal vs Solar (MW)</h2>
+  </header>
+
+  <div id="map"></div>
+
+  <footer>
+    <p>Map authored by Remi Adewale</p>
+    <p>Proportional symbols show generating capacity (MW) for three renewable fuel sources.</p>
+  </footer>
+
+  <!-- data file -->
+  <script src="power-plants.js"></script>
+
+  <script>
+    // base map
+    const map = L.map('map', {
+      center: [36, -94],
+      zoom: 4
+    });
+
+    var tiles = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    });
+
+    tiles.addTo(map);
+
+    function getRadius(area) {
+        return Math.sqrt(area / Math.PI) * 1.6;
+    }
+
+    const biomassLayer = L.geoJson(plants, {
+      filter: function (feature) {
+        return feature.properties.fuel_source["Biomass"];
+      },
+      pointToLayer: function (feature, latlng) {
+        return L.circleMarker(latlng, {
+          radius: getRadius(feature.properties.capacity_mw),
+          color: "darkgreen",
+          weight: 1,
+          fillColor: "limegreen",
+          fillOpacity: 0.7
+        });
+      },
+      onEachFeature: function (feature, layer) {
+        var name = feature.properties.plant_name;
+        var mw = feature.properties.fuel_source["Biomass"];
+        layer.bindPopup("<b>" + name + "</b><br>" + mw.toLocaleString() + " MW");
+      }
+    });
+
+    const geothermalLayer = L.geoJson(plants, {
+      filter: function (feature) {
+        return feature.properties.fuel_source["Geothermal"];
+      },
+      pointToLayer: function (feature, latlng) {
+        return L.circleMarker(latlng, {
+          radius: getRadius(feature.properties.fuel_source["Geothermal"]),
+          color: "purple",
+          weight: 1,
+          fillColor: "violet",
+          fillOpacity: 0.7
+        });
+      },
+      onEachFeature: function (feature, layer) {
+        var name = feature.properties.plant_name;
+        var mw = feature.properties.fuel_source["Geothermal"];
+        layer.bindPopup("<b>" + name + "</b><br>" + mw.toLocaleString() + " MW");
+      }
+    });
+
+    const solarLayer = L.geoJson(plants, {
+      filter: function (feature) {
+        return feature.properties.fuel_source["Solar"];
+      },
+      pointToLayer: function (feature, latlng) {
+        return L.circleMarker(latlng, {
+          radius: getRadius(feature.properties.fuel_source["Solar"]),
+          color: "orange",
+          weight: 1,
+          fillColor: "yellow",
+          fillOpacity: 0.8
+        });
+      },
+      onEachFeature: function (feature, layer) {
+        var name = feature.properties.plant_name;
+        var mw = feature.properties.fuel_source["Solar"];
+        layer.bindPopup("<b>" + name + "</b><br>" + mw.toLocaleString() + " MW");
+      }
+    });
+
+    // Step 4: Add one layer by default
+    biomassLayer.addTo(map);
+
+    // Step 4: Layer control with colored labels
+    const overlays = {
+      "<span style='color:limegreen'>Biomass</span>": biomassLayer,
+      "<span style='color:violet'>Geothermal</span>": geothermalLayer,
+      "<span style='color:orange'>Solar</span>": solarLayer
+    };
+
+    L.control.layers(null, overlays).addTo(map);
+  </script>
+</body>
+
+</html>
