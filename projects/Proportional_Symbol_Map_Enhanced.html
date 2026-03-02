@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>U.S. Renewable Power Generation - Enhanced</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet" type="text/css">
+
+  <style>
+    :root {
+      --ink: #001323;
+      --bg: whitesmoke;
+      --card: rgba(255, 255, 255, 0.92);
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.20);
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      font-family: Lato, sans-serif;
+      color: var(--ink);
+    }
+
+    header, footer {
+      width: min(1100px, 92%);
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 14px 0 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: 0.2px;
+    }
+
+    h2 {
+      margin: 4px 0 0;
+      font-size: 1rem;
+      font-weight: 400;
+      opacity: 0.85;
+    }
+
+    #map {
+      width: min(1100px, 92%);
+      height: 70vh;
+      min-height: 520px;
+      margin: 12px auto;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background: #111;
+    }
+
+    footer {
+      padding: 10px 0 18px;
+    }
+
+    footer p {
+      margin: 6px 0;
+      font-size: 0.92rem;
+      line-height: 1.35;
+      opacity: 0.95;
+    }
+
+    .small {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 700px) {
+      h1 { font-size: 1.15rem; }
+      h2 { font-size: 0.95rem; }
+      #map {
+        width: 96%;
+        height: 68vh;
+        min-height: 440px;
+        border-radius: 12px;
+      }
+      footer p { font-size: 0.9rem; }
+      .small { font-size: 0.82rem; }
+    }
+
+    /* Legend styling */
+    .legend {
+      background: var(--card);
+      padding: 10px 12px;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      line-height: 1.25;
+      color: var(--ink);
+    }
+
+    .legend .title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+
+    .legend .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0;
+      font-size: 0.9rem;
+    }
+
+    .legend .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid rgba(0,0,0,0.35);
+      flex: 0 0 auto;
+    }
+
+    /* Make layer control readable */
+    .leaflet-control-layers {
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>U.S. Renewable Power Generation</h1>
+    <h2>Compare Biomass, Geothermal, and Solar capacity using proportional symbols (MW)</h2>
+  </header>
+
+  <div id="map"></div>
+
+  <footer>
+    <p><b>Map authored by Remi Adewale</b></p>
+
+    <p class="small">
+      <b>Design principle used:</b> Visual Hierarchy & Clarity.<br>
+      <b>Change made:</b> Reduced clutter by keeping a clean dark basemap, adding a small legend, and using consistent colors + proportional sizing per fuel type.<br>
+      <b>Why it’s better:</b> Users can instantly compare the three fuels, understand what colors mean, and still read the map comfortably on desktop or mobile.
+    </p>
+  </footer>
+  <script src="power-plants.js"></script>
+  <script>
+    const map = L.map('map', {
+      center: [36, -94],
+      zoom: 4
+    });
+
+    const darkTiles = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    // let user switch to a light basemap for accessibility
+    const lightTiles = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    });
+
+    // ---------------------
+    // Radius function (scaled up so small renewables are visible)
+    // + clamp so tiny values still show
+    // ---------------------
+    function getRadius(mw) {
+      const r = Math.sqrt(mw / Math.PI) * 3.5; // scale factor
+
+      return Math.max(3, Math.min(r, 40));   // clamp: min 3px, max 40px
+    }
+
+    // Shared hover behavior (visual hierarchy / feedback)
+    function addHover(layer, baseFill) {
+      layer.on('mouseover', function () {
+        layer.setStyle({ fillOpacity: 0.95, weight: 2 });
+        if (layer.bringToFront) layer.bringToFront();
+      });
+      layer.on('mouseout', function () {
+        layer.setStyle({ fillOpacity: 0.75, weight: 1, fillColor: baseFill });
+      });
+    }
+
+    // BIOMASS
+    const biomassLayer = L.geoJson(plants, {
+      filter: function (feature) {
+        return feature.properties.fuel_source["Biomass"];
+      },
+      pointToLayer: function (feature, latlng) {
+        var mw = feature.properties.fuel_source["Biomass"];
+        var circle = L.circleMarker(latlng, {
+          radius: getRadius(mw),
+          color: "darkgreen",
+          weight: 1,
+          fillColor: "limegreen",
+          fillOpacity: 0.75
+        });
+        addHover(circle, "limegreen");
+        circle.bindTooltip(feature.properties.plant_name, { sticky: true });
+        return circle;
+      },
+      onEachFeature: function (feature, layer) {
+        var name = feature.properties.plant_name;
+        var mw = feature.properties.fuel_source["Biomass"];
+        layer.bindPopup("<b>" + name + "</b><br>Biomass: " + mw.toLocaleString() + " MW");
+      }
+    });
+
+    // GEOTHERMAL
+    const geothermalLayer = L.geoJson(plants, {
+      filter: function (feature) {
+        return feature.properties.fuel_source["Geothermal"];
+      },
+      pointToLayer: function (feature, latlng) {
+        var mw = feature.properties.fuel_source["Geothermal"];
+        var circle = L.circleMarker(latlng, {
+          radius: getRadius(mw),
+          color: "purple",
+          weight: 1,
+          fillColor: "violet",
+          fillOpacity: 0.75
+        });
+        addHover(circle, "violet");
+        circle.bindTooltip(feature.properties.plant_name, { sticky: true });
+        return circle;
+      },
+      onEachFeature: function (feature, layer) {
+        var name = feature.properties.plant_name;
+        var mw = feature.properties.fuel_source["Geothermal"];
+        layer.bindPopup("<b>" + name + "</b><br>Geothermal: " + mw.toLocaleString() + " MW");
+      }
+    });
+
+    // SOLAR
+    const solarLayer = L.geoJson(plants, {
+      filter: function (feature) {
+        return feature.properties.fuel_source["Solar"];
+      },
+      pointToLayer: function (feature, latlng) {
+        var mw = feature.properties.fuel_source["Solar"];
+        var circle = L.circleMarker(latlng, {
+          radius: getRadius(mw),
+          color: "orange",
+          weight: 1,
+          fillColor: "yellow",
+          fillOpacity: 0.75
+        });
+        addHover(circle, "yellow");
+        circle.bindTooltip(feature.properties.plant_name, { sticky: true });
+        return circle;
+      },
+      onEachFeature: function (feature, layer) {
+        var name = feature.properties.plant_name;
+        var mw = feature.properties.fuel_source["Solar"];
+        layer.bindPopup("<b>" + name + "</b><br>Solar: " + mw.toLocaleString() + " MW");
+      }
+    });
+
+    // default layer
+    solarLayer.addTo(map);
+
+    // Layer Control (base + overlays)
+    const baseMaps = {
+      "Dark Theme": darkTiles,
+      "Light Theme": lightTiles
+    };
+
+    const overlays = {
+      "<span style='color:limegreen'><b>Biomass</b></span>": biomassLayer,
+      "<span style='color:violet'><b>Geothermal</b></span>": geothermalLayer,
+      "<span style='color:orange'><b>Solar</b></span>": solarLayer
+    };
+
+    L.control.layers(baseMaps, overlays, { collapsed: false }).addTo(map);
+
+    // Map Legend (clarity)
+    const legend = L.control({ position: "bottomright" });
+  
+    legend.onAdd = function () {
+      var div = L.DomUtil.create("div", "legend");
+      div.innerHTML =
+        "<div class='title'>Legend</div>" +
+        "<div class='row'><span class='swatch' style='background: limegreen;'></span>Biomass</div>" +
+        "<div class='row'><span class='swatch' style='background: violet;'></span>Geothermal</div>" +
+        "<div class='row'><span class='swatch' style='background: yellow;'></span>Solar</div>" +
+        "<div class='row small'>Circle size = MW capacity</div>";
+      return div;
+    };
+    legend.addTo(map);
+  </script>
+</body>
+</html>
