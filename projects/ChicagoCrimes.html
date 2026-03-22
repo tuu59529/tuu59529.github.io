@@ -1,0 +1,90 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Chicago Crime Choropleth</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css" />
+  <script src="https://js.arcgis.com/4.28/"></script>
+
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/widgets/Legend"
+    ], (Map, MapView, FeatureLayer, Legend) => {
+
+      const renderer = {
+        type: "simple",
+        symbol: {
+          type: "simple-fill",
+          outline: {
+            color: [255, 255, 255, 0.3],
+            width: 0.5
+          }
+        },
+        visualVariables: [{
+          type: "color",
+          field: "NarcoticsC",
+          legendOptions: {
+            title: "Narcotics Crime Count"
+          },
+          stops: [
+            { value: 0,   color: "#f2f0f7", label: "Very Low" },
+            { value: 50,  color: "#cbc9e2", label: "Low" },
+            { value: 150, color: "#9e9ac8", label: "Moderate" },
+            { value: 250, color: "#756bb1", label: "High" },
+            { value: 350, color: "#54278f", label: "Very High" }
+          ]
+        }]
+      };
+
+      const layer = new FeatureLayer({
+        url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/Chicago_Crime_Tracts/FeatureServer/0",
+        renderer: renderer,
+        title: "Chicago Narcotics Crime by Census Tract",
+
+        popupTemplate: {
+          title: "Census Tract: {NAME}",
+          content: `
+            This area recorded <b>{NarcoticsC}</b> narcotics-related incidents.<br><br>
+            Higher values indicate increased drug-related activity compared to other tracts in Chicago.
+          `
+        }
+      });
+
+      const map = new Map({
+        basemap: "gray-vector",
+        layers: [layer]
+      });
+
+      const view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [-87.6, 41.8],
+        zoom: 10
+      });
+
+      const legend = new Legend({
+        view: view
+      });
+
+      view.ui.add(legend, "bottom-left");
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+</body>
+</html>

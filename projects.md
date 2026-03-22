@@ -14,5 +14,6 @@ Here are some of my favorite works:
 | 2026 | [Parks & Recreation](projects/Parks_and_Recreation.html) | A map of Parks & Recreation in Philadelphia using GeoJSON, Mapbox and Leaflet |
 | 2026 | [US Renewable Power Generation](projects/Proportional_Symbol_Map.html) | Proportional symbols show generating capacity (MW) for three renewable fuel sources using Leaflet, CartoDB and OpenStreetMap |
 | 2026 | [US Renewable Power Generation (Enhanced)](projects/Proportional_Symbol_Map_Enhanced.html) | Enhanced & Responsive Proportional symbols show generating capacity (MW) for three renewable fuel sources using Leaflet, CartoDB and OpenStreetMap |
+| 2026 | [Chicago Narcotic Crimes by Census Tract](projects/ChicagoCrimes.html) | A map of Chicago Narcotic Crimes by Census Tract using ESRI |
 
 
