@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>US Population Density — Enhanced Choropleth</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+    <style>
+        :root {
+            --bg: #0f0f13;
+            --panel: #16161d;
+            --panel-border: #2a2a38;
+            --accent: #e8ff47;
+            --accent2: #47ffe8;
+            --text: #e8e8f0;
+            --muted: #888899;
+            --font-mono: 'DM Mono', monospace;
+            --font-display: 'Syne', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-mono);
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #sidebar {
+            width: 300px;
+            min-width: 300px;
+            background: var(--panel);
+            border-right: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        #sidebar-header {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        #sidebar-header h1 {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--accent);
+            line-height: 1.2;
+        }
+
+        #sidebar-header p {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 4px;
+            letter-spacing: 0.04em;
+        }
+
+        #sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        #sidebar-body::-webkit-scrollbar { width: 4px; }
+        #sidebar-body::-webkit-scrollbar-track { background: transparent; }
+        #sidebar-body::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 2px; }
+
+        .section-label {
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        #search-wrap {
+            position: relative;
+        }
+        #state-search {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 8px 10px;
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        #state-search:focus { border-color: var(--accent); }
+        #state-search::placeholder { color: var(--muted); }
+        #search-results {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0; right: 0;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            z-index: 2000;
+            max-height: 180px;
+            overflow-y: auto;
+            display: none;
+        }
+        #search-results.open { display: block; }
+        .search-item {
+            padding: 7px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.1s;
+        }
+        .search-item:hover { background: rgba(232,255,71,0.08); }
+        .search-item span.density { color: var(--accent); font-size: 10px; }
+
+        /* classification */
+        .control-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        select, input[type="number"] {
+            background: var(--bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            border-radius: 4px;
+            padding: 6px 8px;
+            outline: none;
+            transition: border-color 0.15s;
+            width: 100%;
+        }
+        select:focus, input:focus { border-color: var(--accent); }
+
+        input[type="number"] { width: 70px; min-width: 70px; }
+
+        /* color scheme */
+        .scheme-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .scheme-btn {
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 5px 4px;
+            cursor: pointer;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            align-items: center;
+            transition: border-color 0.15s, transform 0.1s;
+        }
+        .scheme-btn:hover { border-color: var(--muted); transform: scale(1.02); }
+        .scheme-btn.active { border-color: var(--accent); }
+        .scheme-btn span {
+            font-size: 8px;
+            font-family: var(--font-mono);
+            color: var(--muted);
+            letter-spacing: 0.05em;
+        }
+        .scheme-swatch {
+            display: flex;
+            width: 100%;
+            height: 8px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .scheme-swatch div {
+            flex: 1;
+        }
+
+        #apply-btn {
+            width: 100%;
+            padding: 9px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 4px;
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: opacity 0.15s, transform 0.1s;
+        }
+        #apply-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        #apply-btn:active { transform: translateY(0); }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .stat-box {
+            background: var(--bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 10px 10px 8px;
+        }
+        .stat-box .val {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent2);
+            line-height: 1;
+        }
+        .stat-box .lbl {
+            font-size: 9px;
+            color: var(--muted);
+            margin-top: 4px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        #compare-panel {
+            background: var(--bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 10px;
+        }
+        #compare-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 8px;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        #compare-list::-webkit-scrollbar { width: 3px; }
+        #compare-list::-webkit-scrollbar-thumb { background: var(--panel-border); }
+        .compare-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            animation: slideIn 0.2s ease;
+        }
+        @keyframes slideIn { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:none; } }
+        .compare-bar-wrap {
+            flex: 1;
+            height: 6px;
+            background: var(--panel-border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .compare-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+        .compare-name { width: 75px; color: var(--text); }
+        .compare-val { width: 50px; text-align: right; color: var(--accent); }
+        .compare-remove {
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0 2px;
+            transition: color 0.1s;
+        }
+        .compare-remove:hover { color: #ff6b6b; }
+        #compare-hint {
+            font-size: 9px;
+            color: var(--muted);
+            margin-top: 6px;
+            letter-spacing: 0.04em;
+        }
+
+        #map-wrap {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Alter Leaflet Zoom Control appearance */
+        .leaflet-control-zoom a {
+            background: var(--panel) !important;
+            color: var(--text) !important;
+            border-color: var(--panel-border) !important;
+        }
+        .leaflet-control-zoom a:hover { background: var(--bg) !important; }
+
+        .map-tooltip {
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text);
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .map-tooltip strong {
+            display: block;
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 2px;
+        }
+        .map-tooltip .rank {
+            color: var(--muted);
+            font-size: 9px;
+            margin-top: 2px;
+        }
+
+        #legend-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 10px;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 12px 14px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            z-index: 500;
+            min-width: 140px;
+        }
+        #legend-panel h4 {
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.06em;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 4px;
+        }
+        .legend-swatch {
+            width: 16px;
+            height: 12px;
+            border-radius: 2px;
+            opacity: 0.85;
+        }
+        .legend-label { color: var(--text); }
+
+        #histogram-wrap {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 10px 14px 8px;
+            z-index: 500;
+        }
+        #histogram-wrap h4 {
+            font-family: var(--font-display);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        #histogram-canvas { display: block; }
+
+        #zoom-label {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 10px;
+            color: var(--muted);
+            z-index: 500;
+            letter-spacing: 0.06em;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <h1>Population Density</h1>
+            <p>US States · Census data (people/mi²)</p>
+        </div>
+        <div id="sidebar-body">
+
+            <!-- Search -->
+            <div>
+                <div class="section-label">Find a State</div>
+                <div id="search-wrap">
+                    <input type="text" id="state-search" placeholder="Search state…" autocomplete="off">
+                    <div id="search-results"></div>
+                </div>
+            </div>
+
+            <!-- Classification -->
+            <div>
+                <div class="section-label">Classification</div>
+                <div class="control-row">
+                    <select id="classMethod" style="flex:1">
+                        <option value="quantile">Quantile</option>
+                        <option value="jenks">Natural Breaks (Jenks)</option>
+                    </select>
+                    <input type="number" id="numClasses" min="3" max="8" value="5">
+                </div>
+            </div>
+
+            <!-- Color Scheme -->
+            <div>
+                <div class="section-label">Color Scheme</div>
+                <div class="scheme-grid" id="scheme-grid"></div>
+            </div>
+
+            <!-- APPLY -->
+            <button id="apply-btn" onclick="applySettings()">↻ Update Map</button>
+
+            <!-- Stats -->
+            <div>
+                <div class="section-label">National Statistics</div>
+                <div class="stat-grid" id="stats-grid">
+                    <div class="stat-box">
+                        <div class="val" id="stat-max">—</div>
+                        <div class="lbl">Highest Density</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="val" id="stat-min">—</div>
+                        <div class="lbl">Lowest Density</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="val" id="stat-median">—</div>
+                        <div class="lbl">Median</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="val" id="stat-mean">—</div>
+                        <div class="lbl">Mean</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison -->
+            <div>
+                <div class="section-label">State Comparison</div>
+                <div id="compare-panel">
+                    <div id="compare-list"></div>
+                    <div id="compare-hint">Click a state on the map to add it here</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div id="map-wrap">
+        <div id="map"></div>
+        <div id="zoom-label">Zoom: <span id="zoom-val">4</span></div>
+        <div id="legend-panel">
+            <h4>Density</h4>
+            <div id="legend-rows"></div>
+        </div>
+        <div id="histogram-wrap">
+            <h4>Distribution</h4>
+            <canvas id="histogram-canvas" width="200" height="50"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<script src="us-states.js"></script>
+<script>
+// ============================================================
+//  COLOR SCHEMES
+// ============================================================
+const COLOR_SCHEMES = {
+    amber:    ['#fff3cd','#ffe08a','#ffc107','#fd7e14','#dc3545','#a71e2a','#6e1020','#3d0010'],
+    teal:     ['#e0f7f4','#b2dfdb','#80cbc4','#4db6ac','#26a69a','#00897b','#00695c','#004d40'],
+    purple:   ['#f3e5f5','#e1bee7','#ce93d8','#ba68c8','#ab47bc','#8e24aa','#6a1b9a','#4a148c'],
+    fire:     ['#fffde7','#fff176','#ffee58','#ffca28','#ffa000','#ff6f00','#e65100','#bf360c'],
+    ice:      ['#e8f4fd','#bee3f8','#90cdf4','#63b3ed','#4299e1','#3182ce','#2b6cb0','#1a365d'],
+    earth:    ['#faf0e6','#f5deb3','#deb887','#cd853f','#a0522d','#8b4513','#654321','#3b1f0a'],
+    neon:     ['#f0fff4','#c6f6d5','#9ae6b4','#68d391','#48bb78','#38a169','#276749','#1c4532'],
+    plasma:   ['#f8f9fa','#ffe066','#ffa94d','#ff6b6b','#e64980','#9c36b5','#5c2d91','#1a0533'],
+};
+
+const SCHEME_NAMES = {
+    amber:'Amber', teal:'Teal', purple:'Purple', fire:'Fire',
+    ice:'Ice', earth:'Earth', neon:'Neon', plasma:'Plasma'
+};
+
+let activeScheme = 'amber';
+
+// Build scheme grid
+const grid = document.getElementById('scheme-grid');
+Object.entries(COLOR_SCHEMES).forEach(([key, cols]) => {
+    const btn = document.createElement('button');
+
+    btn.className = 'scheme-btn' + (key === activeScheme ? ' active' : '');
+    btn.dataset.scheme = key;
+    btn.innerHTML = `
+        <div class="scheme-swatch">${cols.slice(0,5).map(c=>`<div style="background:${c}"></div>`).join('')}</div>
+        <span>${SCHEME_NAMES[key]}</span>
+    `;
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.scheme-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeScheme = key;
+    });
+
+    grid.appendChild(btn);
+});
+
+// ============================================================
+//  Initialize Map
+// ============================================================
+const map = L.map('map', { zoomControl: true }).setView([37.8, -96], 4);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 18
+}).addTo(map);
+
+// Label layer on top
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+    attribution: '',
+    subdomains: 'abcd',
+    maxZoom: 18,
+    pane: 'shadowPane'
+}).addTo(map);
+
+map.on('zoomend', () => {
+    document.getElementById('zoom-val').textContent = map.getZoom();
+});
+
+// ============================================================
+//  Classification
+// ============================================================
+const getValues = () => {
+    return statesData.features.map(f => f.properties.density);
+};
+
+// Quantile calculation
+const calcQuantile = (data, n) => {
+    const sorted = [...data].sort((a,b)=>a-b);
+    const breaks = [sorted[0]];
+
+    for (let i=1; i<n; i++) {
+        const idx = Math.floor((i/n)*sorted.length);
+
+        breaks.push(sorted[idx]);
+    }
+
+    breaks.push(sorted[sorted.length-1]);
+
+    return breaks;
+};
+
+// Simplified Jenks (Fisher-Jenks approximation via iterative improvement)
+const calcJenks = (data, k) => {
+    const sorted = [...data].sort((a,b)=>a-b);
+    const n = sorted.length;
+    // start with equal-frequency seed
+    let breaks = calcQuantile(sorted, k);
+    
+    // a few passes of Lloyd's-style refinement
+    for (let pass=0; pass<10; pass++) {
+        const classes = [];
+        for (let i=0; i<k; i++) classes.push([]);
+        sorted.forEach(v => {
+            let best = 0;
+            let bestDist = Infinity;
+            for (let i=0; i<k; i++) {
+                const center = (breaks[i]+breaks[i+1])/2;
+                const d = Math.abs(v-center);
+                if (d < bestDist) { bestDist = d; best = i; }
+            }
+            classes[best].push(v);
+        });
+        breaks = [sorted[0]];
+        classes.forEach(c => { if (c.length) breaks.push(Math.max(...c)); });
+        if (breaks.length < k+1) breaks.push(sorted[n-1]);
+        breaks[breaks.length-1] = sorted[n-1];
+    }
+    return breaks;
+};
+
+const calculateBreaks = (data, method, n) => {
+    switch(method) {
+        case 'jenks':  return calcJenks(data, n);
+        default:       return calcQuantile(data, n);
+    }
+};
+
+// ============================================================
+//  COLOR MAPPING
+// ============================================================
+const getColor = (d, breaks, scheme) => {
+    const colors = COLOR_SCHEMES[scheme] || COLOR_SCHEMES.amber;
+    for (let i=0; i<breaks.length-1; i++) {
+        if (d <= breaks[i+1]) return colors[i];
+    }
+    return colors[colors.length-1];
+};
+
+// ============================================================
+//  STATE
+// ============================================================
+let breaks = calcQuantile(getValues(), 5);
+let geojson;
+let compareSet = [];
+const rankedStates = [...statesData.features]
+    .sort((a,b) => b.properties.density - a.properties.density);
+const rankMap = {};
+
+rankedStates.forEach((f,i) => rankMap[f.properties.name] = i+1);
+
+// ============================================================
+//  STYLE & INTERACTIONS
+// ============================================================
+const featureStyle = (feature) => {
+    return {
+        fillColor: getColor(feature.properties.density, breaks, activeScheme),
+        weight: 1,
+        opacity: 1,
+        color: 'rgba(0,0,0,0.4)',
+        dashArray: '',
+        fillOpacity: 0.82
+    };
+};
+
+const highlightFeature = (e) => {
+    const layer = e.target;
+    layer.setStyle({ weight: 2.5, color: '#e8ff47', fillOpacity: 1 });
+    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) layer.bringToFront();
+    
+    const p = layer.feature.properties;
+    const rank = rankMap[p.name];
+    const total = statesData.features.length;
+    layer.bindTooltip(
+        `<strong>${p.name}</strong>${p.density.toLocaleString()} people/mi²<div class="rank">Rank #${rank} of ${total}</div>`,
+        { className: 'map-tooltip', sticky: true, offset: [12,0] }
+    ).openTooltip();
+};
+
+const resetHighlight = (e) => {
+    geojson.resetStyle(e.target);
+    e.target.closeTooltip();
+};
+
+const onStateClick = (e) => {
+    const name = e.target.feature.properties.name;
+    const density = e.target.feature.properties.density;
+    
+    // Zoom in
+    map.fitBounds(e.target.getBounds(), { padding: [40,40] });
+    
+    // Add to comparison
+    if (!compareSet.find(s => s.name === name)) {
+        if (compareSet.length >= 6) compareSet.shift();
+        compareSet.push({ name, density });
+        updateCompare();
+    }
+};
+
+const onEachFeature = (feature, layer) => {
+    layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: onStateClick
+    });
+};
+
+// ============================================================
+//  RENDER
+// ============================================================
+const renderMap = () => {
+    if (geojson) map.removeLayer(geojson);
+    geojson = L.geoJson(statesData, {
+        style: featureStyle,
+        onEachFeature: onEachFeature
+    }).addTo(map);
+    updateLegend();
+    updateHistogram();
+};
+
+// ============================================================
+//  LEGEND
+// ============================================================
+const updateLegend = () => {
+    const container = document.getElementById('legend-rows');
+    const colors = COLOR_SCHEMES[activeScheme];
+    let html = '';
+    for (let i=0; i<breaks.length-1; i++) {
+        const from = Math.round(breaks[i]).toLocaleString();
+        const to = Math.round(breaks[i+1]).toLocaleString();
+        html += `<div class="legend-row">
+            <div class="legend-swatch" style="background:${colors[i]}"></div>
+            <span class="legend-label">${from}–${to}</span>
+        </div>`;
+    }
+    container.innerHTML = html;
+};
+
+// ============================================================
+//  HISTOGRAM
+// ============================================================
+const updateHistogram = () => {
+    const canvas = document.getElementById('histogram-canvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+    
+    const vals = getValues().sort((a,b)=>a-b);
+    const colors = COLOR_SCHEMES[activeScheme];
+    const n = breaks.length-1;
+    
+    // Count per class
+    const counts = new Array(n).fill(0);
+    vals.forEach(v => {
+        for (let i=0; i<n; i++) {
+            if (v <= breaks[i+1]) { counts[i]++; break; }
+        }
+    });
+    const maxCount = Math.max(...counts);
+    const barW = (W-4) / n;
+    
+    counts.forEach((c,i) => {
+        const barH = Math.max(2, (c/maxCount) * (H-12));
+        ctx.fillStyle = colors[i];
+        ctx.globalAlpha = 0.9;
+        ctx.fillRect(2 + i*barW + 1, H-barH-2, barW-2, barH);
+    });
+};
+
+// ============================================================
+//  STATS
+// ============================================================
+const updateStats = () => {
+    const vals = getValues().sort((a,b)=>a-b);
+    const n = vals.length;
+    const mean = vals.reduce((s,v)=>s+v,0)/n;
+    const median = n%2===0 ? (vals[n/2-1]+vals[n/2])/2 : vals[Math.floor(n/2)];
+    
+    const fmt = v => v >= 1000 ? (v/1000).toFixed(1)+'k' : Math.round(v).toLocaleString();
+    
+    document.getElementById('stat-max').textContent = fmt(vals[n-1]);
+    document.getElementById('stat-min').textContent = fmt(vals[0]);
+    document.getElementById('stat-median').textContent = fmt(median);
+    document.getElementById('stat-mean').textContent = fmt(mean);
+};
+
+// ============================================================
+//  COMPARISON
+// ============================================================
+const updateCompare = () => {
+    const list = document.getElementById('compare-list');
+    const hint = document.getElementById('compare-hint');
+    if (!compareSet.length) {
+        hint.style.display = 'block';
+        list.innerHTML = '';
+        return;
+    }
+    hint.style.display = 'none';
+    const maxD = Math.max(...compareSet.map(s=>s.density));
+    const colors = COLOR_SCHEMES[activeScheme];
+    
+    list.innerHTML = compareSet.map((s,i) => {
+        const pct = (s.density/maxD*100).toFixed(0);
+        const col = getColor(s.density, breaks, activeScheme);
+        return `<div class="compare-item">
+            <span class="compare-name">${s.name.length>9?s.name.slice(0,8)+'…':s.name}</span>
+            <div class="compare-bar-wrap">
+                <div class="compare-bar" style="width:${pct}%;background:${col}"></div>
+            </div>
+            <span class="compare-val">${s.density.toLocaleString()}</span>
+            <span class="compare-remove" onclick="removeCompare(${i})">✕</span>
+        </div>`;
+    }).join('');
+};
+
+const removeCompare = (idx) => {
+    compareSet.splice(idx,1);
+    updateCompare();
+};
+
+// ============================================================
+//  SEARCH
+// ============================================================
+const searchInput = document.getElementById('state-search');
+const searchResults = document.getElementById('search-results');
+
+searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    if (!q) { searchResults.classList.remove('open'); return; }
+    
+    const matches = statesData.features
+        .filter(f => f.properties.name.toLowerCase().includes(q))
+        .slice(0, 6);
+    
+    if (!matches.length) { searchResults.classList.remove('open'); return; }
+    
+    searchResults.innerHTML = matches.map(f => `
+        <div class="search-item" data-name="${f.properties.name}">
+            <span>${f.properties.name}</span>
+            <span class="density">${f.properties.density.toLocaleString()} /mi²</span>
+        </div>
+    `).join('');
+    searchResults.classList.add('open');
+});
+
+searchResults.addEventListener('click', e => {
+    const item = e.target.closest('.search-item');
+    if (!item) return;
+    const name = item.dataset.name;
+    searchInput.value = name;
+    searchResults.classList.remove('open');
+    
+    // Fly to state
+    geojson.eachLayer(layer => {
+        if (layer.feature.properties.name === name) {
+            map.fitBounds(layer.getBounds(), { padding: [60,60] });
+            layer.setStyle({ weight: 3, color: '#e8ff47', fillOpacity: 1 });
+            setTimeout(() => geojson.resetStyle(layer), 2000);
+        }
+    });
+});
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('#search-wrap')) searchResults.classList.remove('open');
+});
+
+// ============================================================
+//  APPLY SETTINGS
+// ============================================================
+const applySettings = () => {
+    const method = document.getElementById('classMethod').value;
+    const n = parseInt(document.getElementById('numClasses').value);
+    breaks = calculateBreaks(getValues(), method, Math.min(Math.max(n,3),8));
+    renderMap();
+    updateCompare();
+    
+    // Flash button
+    const btn = document.getElementById('apply-btn');
+    btn.textContent = '✓ Applied!';
+    setTimeout(() => btn.textContent = '↻ Update Map', 1200);
+};
+
+// Initialize methods
+renderMap();
+updateStats();
+updateCompare();
+</script>
+</body>
+</html>

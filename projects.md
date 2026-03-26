@@ -16,5 +16,6 @@ Here are some of my favorite works:
 | 2026 | [US Renewable Power Generation (Enhanced)](projects/Proportional_Symbol_Map_Enhanced.html) | Enhanced & Responsive Proportional symbols show generating capacity (MW) for three renewable fuel sources using Leaflet, CartoDB and OpenStreetMap |
 | 2026 | [Chicago Narcotic Crimes by Census Tract](projects/ChicagoCrimes.html) | A map of Chicago Narcotic Crimes by Census Tract using ESRI |
 | 2026 | [2022 World Happiness Report](projects/Happiness_Report.html) | A Proportional symbol map of 2022 World Happiness Report using ArcGIS |
+| 2026 | [World Population Density](projects/choropleth-enhanced.html) | A customization choropleth map of World Population Density using Leaflet |
 
 
