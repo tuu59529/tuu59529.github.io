@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <title>Proportional Symbol Map - World Happiness Report</title>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.28/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.28/"></script>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/FeatureLayer",
+        "esri/widgets/Legend"
+      ], function (Map, MapView, FeatureLayer, Legend) {
+        // Base symbol for the proportional circles
+        const defaultSym = {
+          type: "simple-marker",
+          style: "circle",
+          color: [255, 204, 0, 0.6], // Semi-transparent yellow
+          outline: {
+            color: "#333",
+            width: 1
+          }
+        };
+
+        // Proportional symbol renderer
+        const renderer = {
+          type: "simple",
+          symbol: defaultSym,
+          visualVariables: [
+            {
+              type: "size",
+              field: "Happiness_score",
+              legendOptions: {
+                title: "Happiness Score"
+              },
+              stops: [
+                {
+                  value: 3,
+                  size: 6,
+                  label: "Low (3)"
+                },
+                {
+                  value: 5.5,
+                  size: 14,
+                  label: "Medium (5.5)"
+                },
+                {
+                  value: 7.5,
+                  size: 24,
+                  label: "High (7.5)"
+                }
+              ]
+            }
+          ]
+        };
+
+        // Feature layer
+        const happinessLayer = new FeatureLayer({
+          url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/2022_World_Happiness_Report/FeatureServer/0",
+          title: "2022 World Happiness Report",
+          renderer: renderer,
+          popupTemplate: {
+            title: "{Country}",
+            content:
+              "<b>{Country}</b> is ranked <b>#{RANK}</b> in the 2022 World Happiness Report with a happiness score of <b>{Happiness_score}</b>.",
+            fieldInfos: [
+              {
+                fieldName: "RANK",
+                label: "World Rank"
+              },
+              {
+                fieldName: "Happiness_score",
+                label: "Happiness Score",
+                format: {
+                  places: 2,
+                  digitSeparator: true
+                }
+              }
+            ]
+          }
+        });
+
+        // Map
+        const map = new Map({
+          basemap: "gray-vector",
+          layers: [happinessLayer]
+        });
+
+        // View
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [10, 20],
+          zoom: 2
+        });
+
+        // Legend
+        const legend = new Legend({
+          view: view
+        });
+
+        view.ui.add(legend, "bottom-right");
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+  </body>
+</html>
