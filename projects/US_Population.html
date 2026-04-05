@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>US Population Density Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+    <style>
+        body {
+            font-family: Roboto, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        p {
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        /* main layout */
+        #container {
+            display: flex;
+            gap: 15px;
+        }
+
+        #map-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #map {
+            height: 550px;
+            border: 2px solid #ccc;
+        }
+
+        #stats-panel {
+            padding: 12px;
+        }
+
+        #stats-row {
+            display: flex;
+            gap: 0;
+        }
+
+        #stats-row .stat-item {
+            flex: 1;
+            flex-direction: column;
+            align-items: flex-start;
+            border-bottom: none;
+            border-right: 1px solid #f0f0f0;
+            padding: 0 12px;
+        }
+
+        #stats-row .stat-item:first-child {
+            padding-left: 0;
+        }
+
+        #stats-row .stat-item:last-child {
+            border-right: none;
+        }
+
+        #stats-row .stat-item span:first-child {
+            display: block;
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 2px;
+        }
+
+        #stats-row .stat-item span:last-child {
+            font-size: 16px;
+        }
+
+        /* sidebar */
+        #sidebar {
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .panel {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 12px;
+            border-radius: 4px;
+        }
+
+        .panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #444;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+        }
+
+        .panel label {
+            display: block;
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 3px;
+            margin-top: 8px;
+        }
+
+        .panel label:first-of-type {
+            margin-top: 0;
+        }
+
+        .panel select,
+        .panel input {
+            width: 100%;
+            padding: 5px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+
+        .panel button {
+            margin-top: 10px;
+            width: 100%;
+            padding: 6px;
+            background-color: #4a90d9;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .panel button:hover {
+            background-color: #357abd;
+        }
+
+        /* color scheme chips */
+        .scheme-row {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+
+        .scheme-chip {
+            width: 38px;
+            height: 22px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            border-radius: 2px;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .scheme-chip div {
+            flex: 1;
+        }
+
+        .scheme-chip.active {
+            border-color: #333;
+        }
+
+        /* stats */
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-item span:first-child {
+            color: #777;
+        }
+
+        .stat-item span:last-child {
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* legend */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: #444;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 14px;
+            border: 1px solid #ccc;
+            flex-shrink: 0;
+        }
+
+        /* search */
+        #search-results {
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            display: none;
+            background: white;
+        }
+
+        .result-item {
+            padding: 5px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .result-item .density-val {
+            color: #4a90d9;
+            font-size: 11px;
+        }
+
+        /* compare */
+        .compare-entry {
+            font-size: 12px;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .compare-entry:last-child {
+            border-bottom: none;
+        }
+
+        .compare-entry .name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .compare-entry .bar-wrap {
+            background: #eee;
+            height: 8px;
+            margin-top: 3px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .compare-entry .bar-fill {
+            height: 100%;
+            border-radius: 2px;
+        }
+
+        .compare-entry .val {
+            color: #888;
+            font-size: 11px;
+            margin-top: 1px;
+        }
+
+        #compare-hint {
+            font-size: 12px;
+            color: #999;
+            font-style: italic;
+        }
+
+        #clear-btn {
+            background-color: #e05c5c !important;
+        }
+
+        #clear-btn:hover {
+            background-color: #c94444 !important;
+        }
+
+        /* leaflet overrides */
+        .leaflet-control-zoom a {
+            font-family: Roboto, sans-serif !important;
+        }
+
+        .map-tooltip {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+            font-family: Roboto, sans-serif;
+            font-size: 12px;
+            border-radius: 3px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .map-tooltip b {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 2px;
+            color: #333;
+        }
+
+        .map-tooltip .rank {
+            color: #999;
+            font-size: 10px;
+            margin-top: 2px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>US Population Density</h1>
+    <p>Census Bureau data &mdash; people per square mile. Click a state to compare.</p>
+
+    <div id="container">
+
+        <div id="map-col">
+            <div id="map"></div>
+
+            <!-- stats below the map, horizontal -->
+            <div class="panel" id="stats-panel">
+                <h3>Statistics</h3>
+                <div id="stats-row">
+                    <div class="stat-item"><span>Maximum</span><span id="s-max">—</span></div>
+                    <div class="stat-item"><span>Minimum</span><span id="s-min">—</span></div>
+                    <div class="stat-item"><span>Median</span><span id="s-med">—</span></div>
+                    <div class="stat-item"><span>Mean</span><span id="s-mean">—</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sidebar">
+
+            <!-- classification -->
+            <div class="panel">
+                <h3>Classification</h3>
+                <label>Method</label>
+                <select id="classMethod">
+                    <option value="quantile">Quantile</option>
+                    <option value="jenks">Natural Breaks</option>
+                </select>
+                <label>Number of Classes</label>
+                <input type="number" id="numClasses" min="3" max="8" value="5">
+                <label>Color Scheme</label>
+                <div class="scheme-row" id="scheme-row"></div>
+                <button onclick="applySettings()">Apply</button>
+            </div>
+
+            <!-- legend -->
+            <div class="panel">
+                <h3>Legend</h3>
+                <div id="legend-items"></div>
+            </div>
+
+            <!-- search -->
+            <div class="panel">
+                <h3>Find a State</h3>
+                <input type="text" id="state-search" placeholder="Type a state name...">
+                <div id="search-results"></div>
+            </div>
+
+            <!-- compare -->
+            <div class="panel">
+                <h3>Compare States</h3>
+                <div id="compare-list">
+                    <div id="compare-hint">Click up to 6 states on the map</div>
+                </div>
+                <button id="clear-btn" onclick="clearComparison()" style="margin-top:8px">Clear</button>
+            </div>
+
+        </div>
+    </div>
+
+<script src="us-states.js"></script>
+<script>
+
+    // color schemes
+    const COLOR_SCHEMES = {
+        yellowRed: ['#FFEDA0', '#FED976', '#FEB24C', '#FD8D3C', '#FC4E2A', '#E31A1C', '#BD0026', '#800026'],
+        blues:     ['#EFF3FF', '#C6DBEF', '#9ECAE1', '#6BAED6', '#4292C6', '#2171B5', '#08519C', '#08306B'],
+        greens:    ['#F7FCF5', '#E5F5E0', '#C7E9C0', '#A1D99B', '#74C476', '#41AB5D', '#238B45', '#005A32'],
+        purples:   ['#F2F0F7', '#DADAEB', '#BCBDDC', '#9E9AC8', '#807DBA', '#6A51A3', '#54278F', '#3F007D'],
+        oranges:   ['#FFF5EB', '#FEE6CE', '#FDD0A2', '#FDAE6B', '#FD8D3C', '#F16913', '#D94801', '#8C2D04'],
+    };
+
+    const SCHEME_LABELS = {
+        yellowRed: 'Yr', blues: 'Bl', greens: 'Gn', purples: 'Pu', oranges: 'Or'
+    };
+
+    let activeColorScheme = 'yellowRed';
+
+    // build scheme chips
+    const schemeRowEl = document.getElementById('scheme-row');
+    Object.entries(COLOR_SCHEMES).forEach(([schemeName, colors]) => {
+        const chip = document.createElement('div');
+        chip.className = 'scheme-chip' + (schemeName === activeColorScheme ? ' active' : '');
+        chip.title = schemeName;
+        chip.innerHTML = colors.slice(1, 6).map(color => `<div style="background:${color}"></div>`).join('');
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.scheme-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeColorScheme = schemeName;
+        });
+        schemeRowEl.appendChild(chip);
+    });
+
+    // map setup
+    const leafletMap = L.map('map').setView([38, -96], 4);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 18
+    }).addTo(leafletMap);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 18,
+        pane: 'shadowPane'
+    }).addTo(leafletMap);
+
+    // get all density values from the data
+    function getAllDensityValues() {
+        return statesData.features.map(feature => feature.properties.density);
+    }
+
+    // classification functions
+    function calculateBreaks(densityValues, classificationMethod, numberOfClasses) {
+        const sortedValues = [...densityValues].sort((a, b) => a - b);
+
+        if (classificationMethod === 'jenks') {
+            return calculateJenksBreaks(sortedValues, numberOfClasses);
+        }
+
+        return calculateQuantileBreaks(sortedValues, numberOfClasses);
+    }
+
+    function calculateQuantileBreaks(sortedValues, numberOfClasses) {
+        const breaks = [sortedValues[0]];
+        for (let classIndex = 1; classIndex < numberOfClasses; classIndex++) {
+            const position = Math.floor((classIndex / numberOfClasses) * sortedValues.length);
+            breaks.push(sortedValues[position]);
+        }
+        breaks.push(sortedValues[sortedValues.length - 1]);
+        return breaks;
+    }
+
+    function calculateJenksBreaks(sortedValues, numberOfClasses) {
+        let breaks = calculateQuantileBreaks(sortedValues, numberOfClasses);
+        for (let iteration = 0; iteration < 8; iteration++) {
+            const classes = Array.from({ length: numberOfClasses }, () => []);
+            sortedValues.forEach(value => {
+                let bestClassIndex = 0;
+                let smallestDistance = Infinity;
+                for (let classIndex = 0; classIndex < numberOfClasses; classIndex++) {
+                    const classMidpoint = (breaks[classIndex] + breaks[classIndex + 1]) / 2;
+                    const distanceToMidpoint = Math.abs(value - classMidpoint);
+                    if (distanceToMidpoint < smallestDistance) {
+                        smallestDistance = distanceToMidpoint;
+                        bestClassIndex = classIndex;
+                    }
+                }
+                classes[bestClassIndex].push(value);
+            });
+            breaks = [sortedValues[0]];
+            classes.forEach(classValues => {
+                if (classValues.length > 0) breaks.push(Math.max(...classValues));
+            });
+            if (breaks.length <= numberOfClasses) breaks.push(sortedValues[sortedValues.length - 1]);
+            breaks[breaks.length - 1] = sortedValues[sortedValues.length - 1];
+        }
+        return breaks;
+    }
+
+    // map state
+    let classBreaks = calculateBreaks(getAllDensityValues(), 'quantile', 5);
+    let geojsonLayer;
+    let statesBeingCompared = [];
+
+    const statesRankedByDensity = [...statesData.features].sort((a, b) => b.properties.density - a.properties.density);
+    const densityRankByStateName = {};
+    statesRankedByDensity.forEach((feature, index) => {
+        densityRankByStateName[feature.properties.name] = index + 1;
+    });
+
+    function getColorForDensity(densityValue) {
+        const colors = COLOR_SCHEMES[activeColorScheme];
+        for (let breakIndex = 0; breakIndex < classBreaks.length - 1; breakIndex++) {
+            if (densityValue <= classBreaks[breakIndex + 1]) return colors[breakIndex];
+        }
+        return colors[colors.length - 1];
+    }
+
+    function getStateStyle(feature) {
+        const isSelected = statesBeingCompared.some(state => state.name === feature.properties.name);
+        return {
+            fillColor: getColorForDensity(feature.properties.density),
+            weight: isSelected ? 3 : 1,
+            opacity: 1,
+            color: isSelected ? '#e05c5c' : '#999',
+            dashArray: '',
+            fillOpacity: 0.75
+        };
+    }
+
+    function renderMap() {
+        if (geojsonLayer) leafletMap.removeLayer(geojsonLayer);
+        geojsonLayer = L.geoJson(statesData, {
+            style: getStateStyle,
+            onEachFeature: attachStateEventListeners
+        }).addTo(leafletMap);
+        updateLegend();
+        updateStats();
+        updateComparePanel();
+    }
+
+    // hover and click
+    function attachStateEventListeners(feature, layer) {
+        layer.on({
+            mouseover(event) {
+                const isSelected = statesBeingCompared.some(state => state.name === feature.properties.name);
+                event.target.setStyle({
+                    weight: isSelected ? 3 : 2,
+                    color: isSelected ? '#e05c5c' : '#555',
+                    fillOpacity: 0.9
+                });
+                if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                    event.target.bringToFront();
+                }
+                const { name, density } = feature.properties;
+                const rank = densityRankByStateName[name];
+                const totalStates = statesData.features.length;
+                layer.bindTooltip(
+                    `<b>${name}</b>${density.toLocaleString()} people / mi²<span class="rank">Rank #${rank} of ${totalStates}</span>`,
+                    { className: 'map-tooltip', sticky: true, offset: [10, 0] }
+                ).openTooltip();
+            },
+            mouseout(event) {
+                geojsonLayer.resetStyle(event.target);
+                const isSelected = statesBeingCompared.some(state => state.name === feature.properties.name);
+                if (isSelected) {
+                    event.target.setStyle({ weight: 3, color: '#e05c5c', fillOpacity: 0.75 });
+                }
+                event.target.closeTooltip();
+            },
+            click(event) {
+                leafletMap.fitBounds(event.target.getBounds(), { padding: [40, 40] });
+                const { name, density } = feature.properties;
+                const alreadyAdded = statesBeingCompared.find(state => state.name === name);
+                if (!alreadyAdded) {
+                    if (statesBeingCompared.length >= 6) statesBeingCompared.shift();
+                    statesBeingCompared.push({ name, density });
+                    updateComparePanel();
+                    geojsonLayer.eachLayer(l => {
+                        if (l.feature.properties.name === name) {
+                            l.setStyle({ weight: 3, color: '#e05c5c', fillOpacity: 0.75 });
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    // legend
+    function formatValue(value) {
+        return Math.round(value) >= 1000
+            ? (Math.round(value) / 1000).toFixed(0) + 'k'
+            : Math.round(value).toLocaleString();
+    }
+
+    function updateLegend() {
+        const colors = COLOR_SCHEMES[activeColorScheme];
+        document.getElementById('legend-items').innerHTML = classBreaks.slice(0, -1).map((breakStart, index) => `
+            <div class="legend-item">
+                <div class="legend-color" style="background:${colors[index]}"></div>
+                <span>${formatValue(breakStart)} – ${formatValue(classBreaks[index + 1])}</span>
+            </div>`
+        ).join('');
+    }
+
+    // stats
+    function updateStats() {
+        const sortedDensities = getAllDensityValues().sort((a, b) => a - b);
+        const count = sortedDensities.length;
+        const middleIndex = Math.floor(count / 2);
+        const median = count % 2 === 0
+            ? (sortedDensities[middleIndex - 1] + sortedDensities[middleIndex]) / 2
+            : sortedDensities[middleIndex];
+        const mean = sortedDensities.reduce((sum, value) => sum + value, 0) / count;
+
+        const fmt = value => value >= 1000 ? (value / 1000).toFixed(1) + 'k' : Math.round(value).toString();
+        document.getElementById('s-max').textContent  = fmt(sortedDensities[count - 1]);
+        document.getElementById('s-min').textContent  = fmt(sortedDensities[0]);
+        document.getElementById('s-med').textContent  = fmt(median);
+        document.getElementById('s-mean').textContent = fmt(mean);
+    }
+
+    // compare panel
+    function updateComparePanel() {
+        const compareListEl = document.getElementById('compare-list');
+        if (!statesBeingCompared.length) {
+            compareListEl.innerHTML = '<div id="compare-hint">Click up to 6 states on the map</div>';
+            return;
+        }
+        const highestDensity = Math.max(...statesBeingCompared.map(state => state.density));
+        const fmt = value => value >= 1000 ? (value / 1000).toFixed(1) + 'k' : Math.round(value).toString();
+        compareListEl.innerHTML = statesBeingCompared.map((state, index) => {
+            const barWidth = (state.density / highestDensity * 100).toFixed(1);
+            const barColor = getColorForDensity(state.density);
+            return `
+            <div class="compare-entry">
+                <div class="name">${state.name}</div>
+                <div class="bar-wrap">
+                    <div class="bar-fill" style="width:${barWidth}%;background:${barColor}"></div>
+                </div>
+                <div class="val">${fmt(state.density)} /mi² &nbsp;<span onclick="removeStateFromCompare(${index})" style="color:#ccc;cursor:pointer">✕</span></div>
+            </div>`;
+        }).join('');
+    }
+
+    function removeStateFromCompare(index) {
+        const removedName = statesBeingCompared[index].name;
+        statesBeingCompared.splice(index, 1);
+        updateComparePanel();
+        geojsonLayer.eachLayer(layer => {
+            if (layer.feature.properties.name === removedName) {
+                geojsonLayer.resetStyle(layer);
+            }
+        });
+    }
+
+    function clearComparison() {
+        statesBeingCompared = [];
+        updateComparePanel();
+        geojsonLayer.eachLayer(layer => geojsonLayer.resetStyle(layer));
+    }
+
+    // search
+    const searchInputEl = document.getElementById('state-search');
+    const searchResultsEl = document.getElementById('search-results');
+
+    searchInputEl.addEventListener('input', () => {
+        const query = searchInputEl.value.trim().toLowerCase();
+        if (!query) { searchResultsEl.style.display = 'none'; return; }
+        const matchingStates = statesData.features
+            .filter(feature => feature.properties.name.toLowerCase().includes(query))
+            .slice(0, 5);
+        if (!matchingStates.length) { searchResultsEl.style.display = 'none'; return; }
+        searchResultsEl.innerHTML = matchingStates.map(feature => `
+            <div class="result-item" data-name="${feature.properties.name}">
+                <span>${feature.properties.name}</span>
+                <span class="density-val">${feature.properties.density.toLocaleString()}</span>
+            </div>`
+        ).join('');
+        searchResultsEl.style.display = 'block';
+    });
+
+    searchResultsEl.addEventListener('click', event => {
+        const clickedItem = event.target.closest('.result-item');
+        if (!clickedItem) return;
+        const selectedStateName = clickedItem.dataset.name;
+        searchInputEl.value = '';
+        searchResultsEl.style.display = 'none';
+        geojsonLayer.eachLayer(layer => {
+            if (layer.feature.properties.name === selectedStateName) {
+                leafletMap.fitBounds(layer.getBounds(), { padding: [60, 60] });
+                layer.setStyle({ weight: 2.5, color: '#333', fillOpacity: 1 });
+                setTimeout(() => geojsonLayer.resetStyle(layer), 2000);
+            }
+        });
+    });
+
+    document.addEventListener('click', event => {
+        if (!event.target.closest('#state-search') && !event.target.closest('#search-results')) {
+            searchResultsEl.style.display = 'none';
+        }
+    });
+
+    // apply button
+    function applySettings() {
+        const selectedMethod = document.getElementById('classMethod').value;
+        const numberOfClasses = Math.min(8, Math.max(3, parseInt(document.getElementById('numClasses').value)));
+        classBreaks = calculateBreaks(getAllDensityValues(), selectedMethod, numberOfClasses);
+        renderMap();
+    }
+
+    // keyboard shortcut to clear
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') clearComparison();
+    });
+
+    // go!
+    renderMap();
+
+</script>
+</body>
+</html>
