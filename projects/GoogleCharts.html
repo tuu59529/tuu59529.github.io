@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Charts – Scatter + Stepped Area</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+      padding: 30px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .chart-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 40px;
+    }
+    .chart-label {
+      display: inline-block;
+      background-color: #e8630a;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      color: #333;
+      margin: 6px 0 4px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Google Charts – Two More Interactive Charts</h1>
+
+  <!-- Scatter Chart – NBA Data -->
+  <div class="chart-container">
+    <span class="chart-label">Scatter Chart</span>
+    <h2>NBA All-Time Points Leaders (Career Points)</h2>
+    <div id="scatter_chart" style="width: 100%; height: 500px;"></div>
+  </div>
+
+  <!-- Stepped Area Chart – Video Game Data -->
+  <div class="chart-container">
+    <span class="chart-label">Stepped Area Chart</span>
+    <h2>Best Selling Video Game Franchises Over Time (Millions of Units Sold)</h2>
+    <div id="stepped_chart" style="width: 100%; height: 450px;"></div>
+  </div>
+
+  <script type="text/javascript">
+    google.charts.load('current', { packages: ['corechart'] });
+    google.charts.setOnLoadCallback(drawCharts);
+
+    function drawCharts() {
+      drawScatterChart();
+      drawSteppedChart();
+    }
+
+    // Chart 1: Scatter Chart
+    function drawScatterChart() {
+      const data = new google.visualization.DataTable();
+
+      data.addColumn('number', 'Rank');
+      data.addColumn('number', 'Career Points');
+      data.addColumn({ type: 'string', role: 'tooltip' });
+
+      data.addRows([
+        [1, 40582, 'LeBron James – 40,582 pts'],
+        [2, 38387, 'Kareem Abdul-Jabbar – 38,387 pts'],
+        [3, 36928, 'Karl Malone – 36,928 pts'],
+        [4, 33643, 'Kobe Bryant – 33,643 pts'],
+        [5, 32292, 'Michael Jordan – 32,292 pts'],
+        [6, 31560, 'Dirk Nowitzki – 31,560 pts'],
+        [7, 31419, 'Wilt Chamberlain – 31,419 pts'],
+        [8, 28596, "Shaquille O'Neal – 28,596 pts"]
+      ]);
+
+      const options = {
+        title: 'NBA All-Time Points Leaders by Rank',
+        titleTextStyle: { fontSize: 15, bold: true, color: '#333' },
+        hAxis: {
+          title: 'All-Time Rank',
+          ticks: [1, 2, 3, 4, 5, 6, 7, 8],
+          titleTextStyle: { color: '#555' }
+        },
+        vAxis: {
+          title: 'Career Points',
+          format: '#,###',
+          titleTextStyle: { color: '#555' },
+          minValue: 25000
+        },
+        legend: 'none',
+        pointSize: 14,
+        pointShape: 'star',
+        colors: ['#e8630a'],
+        chartArea: { width: '80%', height: '70%' },
+      };
+
+      const chart = new google.visualization.ScatterChart(document.getElementById('scatter_chart'));
+
+      chart.draw(data, options);
+    }
+
+    // ── Chart 4: Stepped Area Chart – Video Game Franchise Sales ─────────────
+    function drawSteppedChart() {
+      const data = google.visualization.arrayToDataTable([
+        ['Year', 'Mario', 'Pokemon', 'Call of Duty', 'Grand Theft Auto'],
+        ['2000',  200,  150,   0,   50],
+        ['2004',  240,  180,  30,  110],
+        ['2008',  310,  220, 100,  145],
+        ['2012',  380,  260, 185,  175],
+        ['2016',  500,  300, 250,  275],
+        ['2020',  600,  380, 300,  370],
+        ['2024',  900,  480, 425,  410]
+      ]);
+
+      const options = {
+        title: 'Best Selling Video Game Franchises Over Time',
+        titleTextStyle: { fontSize: 15, bold: true, color: '#333' },
+        hAxis: {
+          title: 'Year',
+          titleTextStyle: { color: '#555' }
+        },
+        vAxis: {
+          title: 'Units Sold (Millions)',
+          minValue: 0,
+          titleTextStyle: { color: '#555' }
+        },
+        colors: ['#e74c3c', '#f1c40f', '#2c3e50', '#27ae60'],
+        legend: { position: 'top' },
+        isStacked: false,
+        chartArea: { width: '80%', height: '65%' },
+        tooltip: { isHtml: true }
+      };
+
+      const chart = new google.visualization.SteppedAreaChart(document.getElementById('stepped_chart'));
+
+      chart.draw(data, options);
+    }
+  </script>
+
+</body>
+</html>

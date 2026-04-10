@@ -17,5 +17,6 @@ Here are some of my favorite works:
 | 2026 | [Chicago Narcotic Crimes by Census Tract](projects/ChicagoCrimes.html) | A map of Chicago Narcotic Crimes by Census Tract using ESRI |
 | 2026 | [2022 World Happiness Report](projects/Happiness_Report.html) | A Proportional symbol map of 2022 World Happiness Report using ArcGIS |
 | 2026 | [U.S. Population Density](projects/US_Population.html) | A customization choropleth map of U.S. Population Density using Leaflet |
+| 2026 | [Google Charts](projects/GoogleCharts.html) | Two Google Charts of N.B.A All-Time Point Leaders and Best Selling Video Games Franchises Over Time |
 
 
