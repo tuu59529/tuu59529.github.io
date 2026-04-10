@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>My Philadelphia - Leaflet FlyTo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      font-family: 'Inter', sans-serif;
+      background: #f9f7f4;
+    }
+    #story {
+      width: 260px;
+      min-width: 260px;
+      padding: 1.6em 1.4em;
+      background: #f9f7f4;
+      border-right: 1px solid #e8e4de;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3em;
+    }
+    h2 {
+      font-family: 'Lora', serif;
+      font-size: 1.35em;
+      font-weight: 400;
+      color: #2a2a2a;
+      margin: 0 0 0.2em;
+    }
+    #story > p {
+      font-size: 0.78em;
+      color: #888;
+      margin: 0 0 1em;
+      font-style: italic;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 0.6em 0.9em;
+      background: white;
+      border: 1px solid #e0dbd4;
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82em;
+      color: #333;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover {
+      background: #eef6f0;
+      border-color: #a8c9b0;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #e8e4de;
+      margin: 0.6em 0;
+    }
+    .overview-btn {
+      color: #777;
+      font-size: 0.78em !important;
+    }
+    #map { flex: 1; }
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      border: 1px solid #e8e4de;
+    }
+    .leaflet-popup-content {
+      margin: 10px 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82em;
+      color: #333;
+      line-height: 1.5;
+    }
+    .leaflet-popup-content b {
+      font-family: 'Lora', serif;
+      font-weight: 400;
+      font-size: 1.05em;
+      color: #2a2a2a;
+    }
+    .leaflet-popup-content img {
+      width: 210px;
+      height: 130px;
+      object-fit: cover;
+      display: block;
+      margin-top: 7px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="story">
+    <h2>🏙 My Philadelphia</h2>
+    <p>Places I keep coming back to.</p>
+    <button onclick="goToScene(0)">1. Reading Terminal Market</button>
+    <button onclick="goToScene(1)">2. Fairmount Park</button>
+    <button onclick="goToScene(2)">3. Fishtown</button>
+    <button onclick="goToScene(3)">4. Rittenhouse Square</button>
+    <hr class="divider">
+    <button class="overview-btn" onclick="map.closePopup(); map.flyToBounds(allBounds, {padding:[40,40], duration:2})">↩ See all stops</button>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([39.952, -75.165], 13);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap &copy; CartoDB'
+    }).addTo(map);
+
+    const scenes = [
+      {
+        coords: [39.9534, -75.1591],
+        zoom: 16,
+        text: "<b>Reading Terminal Market</b><br>Historic indoor market since 1893. The DiNic's roast pork sandwich is non-negotiable.",
+        image: "./images/Reading_Terminal_Market.jpg"
+      },
+      {
+        coords: [39.9731, -75.1885],
+        zoom: 14,
+        text: "<b>Fairmount Park</b><br>One of the largest urban parks in the US. Easy to lose two hours here.",
+        image: "./images/Fairmount_Water_Works_LOC.jpg"
+      },
+      {
+        coords: [39.9726, -75.1327],
+        zoom: 15,
+        text: "<b>Fishtown</b><br>Craft coffee, vinyl shops, and the best BYOB restaurants in the city.",
+        image: "./images/2333_at_Northern_Liberties_Loop_ii.jpg"
+      },
+      {
+        coords: [39.9493, -75.1726],
+        zoom: 16,
+        text: "<b>Rittenhouse Square</b><br>The city's living room. Grab a coffee and watch Philadelphia happen.",
+        image: "./images/Rittenhouse_Square_-_autumn.JPG"
+      }
+    ];
+
+    const allBounds = L.latLngBounds(scenes.map(s => s.coords));
+
+    // Add a persistent marker for every stop
+    scenes.forEach(function(s, i) {
+      L.marker(s.coords)
+        .addTo(map)
+        .on('click', function() { goToScene(i); });
+    });
+
+    function goToScene(i) {
+      const s = scenes[i];
+  
+      map.flyTo(s.coords, s.zoom, { duration: 2 });
+
+      L.popup({ maxWidth: 230 })
+        .setLatLng(s.coords)
+        .setContent(`<div>${s.text}<img src="${s.image}" onerror="this.style.display='none'"></div>`)
+        .openOn(map);
+    }
+  </script>
+</body>
+</html>
